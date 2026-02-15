@@ -9,8 +9,8 @@ import (
 	"flag"
 	"os"
 
-	bootstrapv1alpha3 "github.com/siderolabs/cluster-api-bootstrap-provider-talos/api/v1alpha3"
-	controlplanev1alpha3 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1alpha3"
+	bootstrapv1beta1 "github.com/siderolabs/cluster-api-bootstrap-provider-talos/api/v1beta1"
+	controlplanev1beta1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1beta1"
 	"github.com/siderolabs/cluster-api-control-plane-provider-talos/controllers"
 	"github.com/spf13/pflag"
 	appsv1 "k8s.io/api/apps/v1"
@@ -23,7 +23,7 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -51,8 +51,8 @@ var (
 func init() {
 	_ = clientgoscheme.AddToScheme(scheme)
 	_ = clusterv1.AddToScheme(scheme)
-	_ = bootstrapv1alpha3.AddToScheme(scheme)
-	_ = controlplanev1alpha3.AddToScheme(scheme)
+	_ = bootstrapv1beta1.AddToScheme(scheme)
+	_ = controlplanev1beta1.AddToScheme(scheme)
 	// +kubebuilder:scaffold:scheme
 }
 
@@ -180,7 +180,7 @@ func main() {
 		setupLog.Error(err, "unable to create controller", "controller", "TalosControlPlane")
 		os.Exit(1)
 	}
-	if err = (&controlplanev1alpha3.TalosControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
+	if err = (&controlplanev1beta1.TalosControlPlane{}).SetupWebhookWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create webhook", "webhook", "TalosConfigTemplate")
 		os.Exit(1)
 	}

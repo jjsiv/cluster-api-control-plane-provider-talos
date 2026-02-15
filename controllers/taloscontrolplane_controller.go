@@ -31,8 +31,8 @@ import (
 	"k8s.io/apimachinery/pkg/selection"
 	kerrors "k8s.io/apimachinery/pkg/util/errors"
 	"k8s.io/apiserver/pkg/storage/names"
-	"k8s.io/utils/pointer"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	"k8s.io/utils/ptr"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util"
@@ -49,7 +49,7 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/controller/controllerutil"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 
-	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1alpha3"
+	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1beta1"
 )
 
 const requeueDuration = 30 * time.Second
@@ -500,7 +500,7 @@ func (r *TalosControlPlaneReconciler) generateTalosConfig(ctx context.Context, t
 		Kind:               "TalosControlPlane",
 		Name:               tcp.Name,
 		UID:                tcp.UID,
-		BlockOwnerDeletion: pointer.Bool(true),
+		BlockOwnerDeletion: ptr.To(true),
 	}
 
 	bootstrapConfig := &cabptv1.TalosConfig{

@@ -9,7 +9,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/intstr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
 )
 
 const (
@@ -22,7 +22,7 @@ type ControlPlaneConfig struct {
 	ControlPlaneConfig cabptv1.TalosConfigSpec `json:"controlplane"`
 }
 
-// RolloutStrategyType defines the rollout strategies for a KubeadmControlPlane.
+// RolloutStrategyType defines the rollout strategies for a TalosControlPlane.
 type RolloutStrategyType string
 
 const (
@@ -127,6 +127,9 @@ type TalosControlPlaneStatus struct {
 	// the deployment to have 100% available capacity. They may either
 	// be machines that are running but not yet ready or machines
 	// that still have not been created.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped.
+	//
 	// +optional
 	UnavailableReplicas int32 `json:"unavailableReplicas,omitempty"`
 
@@ -148,11 +151,17 @@ type TalosControlPlaneStatus struct {
 	// FailureReason indicates that there is a terminal problem reconciling the
 	// state, and will be set to a token value suitable for
 	// programmatic interpretation.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped.
+	//
 	// +optional
 	FailureReason *string `json:"failureReason,omitempty"`
 
 	// ErrorMessage indicates that there is a terminal problem reconciling the
 	// state, and will be set to a descriptive error message.
+	//
+	// Deprecated: This field is deprecated and is going to be removed when support for v1beta1 will be dropped.
+	//
 	// +optional
 	FailureMessage *string `json:"failureMessage,omitempty"`
 
@@ -160,7 +169,7 @@ type TalosControlPlaneStatus struct {
 	// +optional
 	ObservedGeneration int64 `json:"observedGeneration,omitempty"`
 
-	// Conditions defines current service state of the KubeadmControlPlane.
+	// Conditions defines current service state of the TalosControlPlane.
 	// +optional
 	Conditions clusterv1.Conditions `json:"conditions,omitempty"`
 
@@ -168,6 +177,34 @@ type TalosControlPlaneStatus struct {
 	// in the cluster.
 	// +optional
 	Version *string `json:"version,omitempty"`
+
+	// v1beta2 groups all the fields that will be added or modified in TalosControlPlane's status with the V1Beta1 API version.
+	// +optional
+	V1Beta2 *TalosControlPlaneV1Beta2Status `json:"v1beta2,omitempty"`
+}
+
+// TalosControlPlaneV1Beta2Status Groups all the fields that will be added or modified in TalosControlPlane with the V1Beta1 version.
+type TalosControlPlaneV1Beta2Status struct {
+	// conditions represents the observations of a TalosControlPlane's current state.
+	// Known condition types are Available, CertificatesAvailable, EtcdClusterAvailable, MachinesReady, MachinesUpToDate,
+	// ScalingUp, ScalingDown, Remediating, Deleting, Paused.
+	// +optional
+	// +listType=map
+	// +listMapKey=type
+	// +kubebuilder:validation:MaxItems=32
+	Conditions []metav1.Condition `json:"conditions,omitempty"`
+
+	// readyReplicas is the number of ready replicas for this TalosControlPlane. A machine is considered ready when Machine's Ready condition is true.
+	// +optional
+	ReadyReplicas *int32 `json:"readyReplicas,omitempty"`
+
+	// availableReplicas is the number of available replicas targeted by this TalosControlPlane. A machine is considered available when Machine's Available condition is true.
+	// +optional
+	AvailableReplicas *int32 `json:"availableReplicas,omitempty"`
+
+	// upToDateReplicas is the number of up-to-date replicas targeted by this TalosControlPlane. A machine is considered up-to-date when Machine's UpToDate condition is true.
+	// +optional
+	UpToDateReplicas *int32 `json:"upToDateReplicas,omitempty"`
 }
 
 // +kubebuilder:object:root=true
@@ -198,6 +235,22 @@ func (r *TalosControlPlane) GetConditions() clusterv1.Conditions {
 // SetConditions sets the conditions on this object.
 func (r *TalosControlPlane) SetConditions(conditions clusterv1.Conditions) {
 	r.Status.Conditions = conditions
+}
+
+// GetV1Beta2Conditions returns the set of conditions for this object.
+func (r *TalosControlPlane) GetV1Beta2Conditions() []metav1.Condition {
+	if r.Status.V1Beta2 == nil {
+		return nil
+	}
+	return r.Status.V1Beta2.Conditions
+}
+
+// SetV1Beta2Conditions sets conditions for an API object.
+func (r *TalosControlPlane) SetV1Beta2Conditions(conditions []metav1.Condition) {
+	if r.Status.V1Beta2 == nil {
+		r.Status.V1Beta2 = &TalosControlPlaneV1Beta2Status{}
+	}
+	r.Status.V1Beta2.Conditions = conditions
 }
 
 // +kubebuilder:object:root=true

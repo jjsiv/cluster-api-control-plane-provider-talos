@@ -4,15 +4,57 @@
 
 // +kubebuilder:object:generate=true
 // +groupName=controlplane.cluster.x-k8s.io
-package v1alpha3
+package v1beta1
 
-import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+import clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 
 // Conditions and condition Reasons for the TalosControlPlane object
 
+// TalosControlPlane's MachinesReady condition and corresponding reasons.
 const (
-	// MachinesReadyCondition reports an aggregate of current status of the machines controlled by the TalosControlPlane.
-	MachinesReadyCondition clusterv1.ConditionType = "MachinesReady"
+	// TalosControlPlaneMachinesReadyCondition surfaces detail of issues on the controlled machines, if any.
+	// Please note this will include also APIServerPodHealthy, ControllerManagerPodHealthy, SchedulerPodHealthy conditions.
+	// If not using an external etcd also EtcdPodHealthy, EtcdMemberHealthy conditions are included.
+	TalosControlPlaneMachinesReadyCondition = clusterv1.MachinesReadyCondition
+
+	// TalosControlPlaneMachinesReadyReason surfaces when all the controlled machine's Ready conditions are true.
+	TalosControlPlaneMachinesReadyReason = clusterv1.ReadyReason
+
+	// TalosControlPlaneMachinesNotReadyReason surfaces when at least one of the controlled machine's Ready conditions is false.
+	TalosControlPlaneMachinesNotReadyReason = clusterv1.NotReadyReason
+
+	// TalosControlPlaneMachinesReadyUnknownReason surfaces when at least one of the controlled machine's Ready conditions is unknown
+	// and no one of the controlled machine's Ready conditions is false.
+	TalosControlPlaneMachinesReadyUnknownReason = clusterv1.ReadyUnknownReason
+
+	// TalosControlPlaneMachinesReadyNoReplicasReason surfaces when no machines exist for the TalosControlPlane.
+	TalosControlPlaneMachinesReadyNoReplicasReason = clusterv1.NoReplicasReason
+
+	// TalosControlPlaneMachinesReadyInternalErrorReason surfaces unexpected failures when computing the MachinesReady condition.
+	TalosControlPlaneMachinesReadyInternalErrorReason = clusterv1.InternalErrorReason
+)
+
+// TalosControlPlane's MachinesUpToDate condition and corresponding reasons.
+const (
+	// TalosControlPlaneMachinesUpToDateCondition surfaces details of controlled machines not up to date, if any.
+	// Note: New machines are considered 10s after machine creation. This gives time to the machine's owner controller to recognize the new machine and add the UpToDate condition.
+	TalosControlPlaneMachinesUpToDateCondition = clusterv1.MachinesUpToDateCondition
+
+	// TalosControlPlaneMachinesUpToDateReason surfaces when all the controlled machine's UpToDate conditions are true.
+	TalosControlPlaneMachinesUpToDateReason = clusterv1.UpToDateReason
+
+	// TalosControlPlaneMachinesNotUpToDateReason surfaces when at least one of the controlled machine's UpToDate conditions is false.
+	TalosControlPlaneMachinesNotUpToDateReason = clusterv1.NotUpToDateReason
+
+	// TalosControlPlaneMachinesUpToDateUnknownReason surfaces when at least one of the controlled machine's UpToDate conditions is unknown
+	// and no one of the controlled machine's UpToDate conditions is false.
+	TalosControlPlaneMachinesUpToDateUnknownReason = clusterv1.UpToDateUnknownReason
+
+	// TalosControlPlaneMachinesUpToDateNoReplicasReason surfaces when no machines exist for the TalosControlPlane.
+	TalosControlPlaneMachinesUpToDateNoReplicasReason = clusterv1.NoReplicasReason
+
+	// TalosControlPlaneMachinesUpToDateInternalErrorReason surfaces unexpected failures when computing the MachinesUpToDate condition.
+	TalosControlPlaneMachinesUpToDateInternalErrorReason = clusterv1.InternalErrorReason
 )
 
 const (
@@ -27,7 +69,7 @@ const (
 const (
 	// AvailableCondition documents that the first control plane instance has completed Talos boot sequence
 	// and so the control plane is available and an API server instance is ready for processing requests.
-	AvailableCondition clusterv1.ConditionType = "Available"
+	AvailableCondition = "Available"
 
 	// WaitingForTalosBootReason (Severity=Info) documents a TalosControlPlane object waiting for the first
 	// control plane instance to complete Talos boot sequence.
