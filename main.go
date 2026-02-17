@@ -5,7 +5,6 @@
 package main
 
 import (
-	"context"
 	"flag"
 	"os"
 
@@ -23,7 +22,8 @@ import (
 	"k8s.io/component-base/logs"
 	logsv1 "k8s.io/component-base/logs/api/v1"
 	"k8s.io/klog/v2"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
+	"sigs.k8s.io/cluster-api/controllers/clustercache"
 	"sigs.k8s.io/cluster-api/controllers/remote"
 	"sigs.k8s.io/cluster-api/util/flags"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -141,41 +141,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Set up a ClusterCacheTracker to provide to controllers
-	// requiring a connection to a remote cluster
-	log := ctrl.Log.WithName("remote").WithName("ClusterCacheTracker")
+	// Setup the context that's going to be used in controllers and for the manager.
+	ctx := ctrl.SetupSignalHandler()
 
-	tracker, err := remote.NewClusterCacheTracker(mgr, remote.ClusterCacheTrackerOptions{
-		SecretCachingClient: secretCachingClient,
-		ControllerName:      "cacppt",
-		Log:                 &log,
-		ClientUncachedObjects: []client.Object{
-			&corev1.ConfigMap{},
-			&corev1.Secret{},
-			&corev1.Pod{},
-			&appsv1.Deployment{},
-			&appsv1.DaemonSet{},
+	clusterCache, err := clustercache.SetupWithManager(ctx, mgr, clustercache.Options{
+		SecretClient: secretCachingClient,
+		Client: clustercache.ClientOptions{
+			QPS:       20,
+			Burst:     30,
+			UserAgent: remote.DefaultClusterAPIUserAgent("cluster-api-control-plane-provider-talos"),
+			Cache: clustercache.ClientCacheOptions{
+				DisableFor: []client.Object{
+					&corev1.ConfigMap{},
+					&corev1.Secret{},
+					&corev1.Pod{},
+					&appsv1.Deployment{},
+					&appsv1.DaemonSet{},
+				},
+			},
 		},
-	})
+	}, controller.Options{MaxConcurrentReconciles: 10})
 	if err != nil {
-		setupLog.Error(err, "unable to create cluster cache tracker")
-		os.Exit(1)
-	}
-
-	if err := (&remote.ClusterCacheReconciler{
-		Client:  mgr.GetClient(),
-		Tracker: tracker,
-	}).SetupWithManager(context.Background(), mgr, controller.Options{MaxConcurrentReconciles: 10}); err != nil {
-		setupLog.Error(err, "unable to create controller", "controller", "ClusterCacheReconciler")
+		setupLog.Error(err, "unable to create cluster cache")
 		os.Exit(1)
 	}
 
 	if err = (&controllers.TalosControlPlaneReconciler{
-		Client:    mgr.GetClient(),
-		APIReader: mgr.GetAPIReader(),
-		Log:       ctrl.Log.WithName("controllers").WithName("TalosControlPlane"),
-		Tracker:   tracker,
-		Scheme:    mgr.GetScheme(),
+		Client:       mgr.GetClient(),
+		APIReader:    mgr.GetAPIReader(),
+		Log:          ctrl.Log.WithName("controllers").WithName("TalosControlPlane"),
+		ClusterCache: clusterCache,
+		Scheme:       mgr.GetScheme(),
 	}).SetupWithManager(mgr, controller.Options{MaxConcurrentReconciles: 10}); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "TalosControlPlane")
 		os.Exit(1)

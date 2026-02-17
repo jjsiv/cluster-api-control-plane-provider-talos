@@ -58,8 +58,8 @@ const (
 )
 
 const (
-	// MachinesBootstrapped is tracking control planes bootstrap status.
-	MachinesBootstrapped clusterv1.ConditionType = "MachinesBootstrapped"
+	// MachinesBootstrappedCondition is tracking control planes bootstrap status.
+	MachinesBootstrappedCondition clusterv1.ConditionType = "MachinesBootstrapped"
 
 	// WaitingForMachinesReason (Severity=Info) documents a TalosControlPlane bootstrap is waiting
 	// for all control plane nodes to be created.

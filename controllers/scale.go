@@ -9,14 +9,14 @@ import (
 	"fmt"
 	"time"
 
-	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1alpha3"
+	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/types"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/util"
 	"sigs.k8s.io/cluster-api/util/collections"
-	"sigs.k8s.io/cluster-api/util/conditions"
+	v1beta1conditions "sigs.k8s.io/cluster-api/util/conditions/deprecated/v1beta1"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
@@ -25,7 +25,7 @@ func (r *TalosControlPlaneReconciler) scaleUpControlPlane(ctx context.Context, c
 	numMachines := len(controlPlane.Machines)
 	desiredReplicas := tcp.Spec.GetReplicas()
 
-	conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning,
+	v1beta1conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingUpReason, clusterv1.ConditionSeverityWarning,
 		"Scaling up control plane to %d replicas (actual %d)",
 		desiredReplicas, numMachines)
 
@@ -45,12 +45,12 @@ func (r *TalosControlPlaneReconciler) scaleDownControlPlane(
 	numMachines := len(controlPlane.Machines)
 	desiredReplicas := tcp.Spec.GetReplicas()
 
-	conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning,
+	v1beta1conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityWarning,
 		"Scaling down control plane to %d replicas (actual %d)",
 		desiredReplicas, numMachines)
 
 	if numMachines == 1 {
-		conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityError,
+		v1beta1conditions.MarkFalse(tcp, controlplanev1.ResizedCondition, controlplanev1.ScalingDownReason, clusterv1.ConditionSeverityError,
 			"Cannot scale down control plane nodes to 0")
 
 		return ctrl.Result{}, nil
@@ -66,7 +66,7 @@ func (r *TalosControlPlaneReconciler) scaleDownControlPlane(
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
 	}
 
-	if !conditions.IsTrue(tcp, controlplanev1.EtcdClusterHealthyCondition) {
+	if !v1beta1conditions.IsTrue(tcp, controlplanev1.EtcdClusterHealthyCondition) {
 		r.Log.Info("waiting for etcd to become healthy before scaling down")
 
 		return ctrl.Result{RequeueAfter: 10 * time.Second}, nil
@@ -74,7 +74,7 @@ func (r *TalosControlPlaneReconciler) scaleDownControlPlane(
 
 	r.Log.Info("scaling down control plane", "Desired", desiredReplicas, "Existing", numMachines)
 
-	client, err := r.Tracker.GetClient(ctx, util.ObjectKey(cluster))
+	client, err := r.ClusterCache.GetClient(ctx, util.ObjectKey(cluster))
 	if err != nil {
 		return ctrl.Result{RequeueAfter: 20 * time.Second}, err
 	}
@@ -90,7 +90,7 @@ func (r *TalosControlPlaneReconciler) scaleDownControlPlane(
 	// delete nodes for the machines which are being destroyed
 	for _, machine := range controlPlane.Machines {
 		// do not allow scaling down until all nodes have nodeRefs
-		if machine.Status.NodeRef == nil {
+		if !machine.Status.NodeRef.IsDefined() {
 			r.Log.Info("one of machines does not have NodeRef", "machine", machine.Name)
 
 			waitForNodeRefs = true
@@ -144,7 +144,8 @@ func (r *TalosControlPlaneReconciler) scaleDownControlPlane(
 func (r *TalosControlPlaneReconciler) deleteNode(ctx context.Context, client client.Client, machine *clusterv1.Machine) (ctrl.Result, error) {
 	var node v1.Node
 
-	name := types.NamespacedName{Name: machine.Status.NodeRef.Name, Namespace: machine.Status.NodeRef.Namespace}
+	// NOTE: this used to specify namespace previously, but it was deleted from NodeRef. let's see if this works
+	name := types.NamespacedName{Name: machine.Status.NodeRef.Name}
 
 	err := client.Get(ctx, name, &node)
 	if err != nil {

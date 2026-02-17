@@ -40,19 +40,15 @@ var (
 func (r *TalosControlPlane) Default(ctx context.Context, obj runtime.Object) error {
 	r = obj.(*TalosControlPlane)
 
-	defaultTalosControlPlaneSpec(&r.Spec, r.Namespace)
+	defaultTalosControlPlaneSpec(&r.Spec)
 
 	return nil
 }
 
-func defaultTalosControlPlaneSpec(s *TalosControlPlaneSpec, namespace string) {
+func defaultTalosControlPlaneSpec(s *TalosControlPlaneSpec) {
 	if s.Replicas == nil {
 		replicas := int32(1)
 		s.Replicas = &replicas
-	}
-
-	if s.InfrastructureTemplate.Namespace == "" {
-		s.InfrastructureTemplate.Namespace = namespace
 	}
 
 	if !strings.HasPrefix(s.Version, "v") {

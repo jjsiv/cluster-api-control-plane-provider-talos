@@ -8,15 +8,15 @@ import (
 	"context"
 	"reflect"
 
-	cabptv1 "github.com/siderolabs/cluster-api-bootstrap-provider-talos/api/v1alpha3"
+	cabptv1 "github.com/siderolabs/cluster-api-bootstrap-provider-talos/api/v1beta1"
 
 	"github.com/go-logr/logr"
 	"github.com/pkg/errors"
-	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1alpha3"
+	controlplanev1 "github.com/siderolabs/cluster-api-control-plane-provider-talos/api/v1beta1"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/klog/v2/klogr"
-	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta1"
+	clusterv1 "sigs.k8s.io/cluster-api/api/core/v1beta2"
 	"sigs.k8s.io/cluster-api/controllers/external"
 	"sigs.k8s.io/cluster-api/util/collections"
 	"sigs.k8s.io/controller-runtime/pkg/client"
@@ -181,6 +181,6 @@ func MatchesControlPlaneConfig(talosConfigs map[string]*cabptv1.TalosConfig, tcp
 			return true
 		}
 
-		return reflect.DeepEqual(tcp.Spec.ControlPlaneConfig.ControlPlaneConfig, talosConfig.Spec)
+		return reflect.DeepEqual(tcp.Spec.ControlPlaneConfig, talosConfig.Spec)
 	}
 }
